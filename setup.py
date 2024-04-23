@@ -19,7 +19,7 @@ __version__ = '0.1'
 
 ext_modules = [
     Pybind11Extension(
-        'pymmcmb.binding',
+        'pymmcmb',
         sources=[
             'src/binding.cpp'
         ],
