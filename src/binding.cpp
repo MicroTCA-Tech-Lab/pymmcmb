@@ -54,6 +54,21 @@ static std::optional<mb_fru_description_t> get_fru_description(size_t fru_id) {
     return desc;
 }
 
+static std::vector<mb_mmc_sensor_t> get_mmc_sensors(size_t first_sensor, size_t n) {
+    std::vector<mb_mmc_sensor_t> result;
+    for (size_t i = first_sensor; i < first_sensor + n; i++) {
+        mb_mmc_sensor_t sen;
+        if (!mb_get_mmc_sensors(&sen, i, 1)) {
+            break;
+        }
+        if (sen.name[0] == '\0') {
+            break;
+        }
+        result.push_back(sen);
+    }
+    return result;
+}
+
 PYBIND11_MODULE(pymmcmb, m) {
     m.doc() = "Python binding for libmmcmb";
 
@@ -107,10 +122,18 @@ PYBIND11_MODULE(pymmcmb, m) {
     py::class_<mb_mmc_sensor_t>(m, "MMCSensor")
         .def_property_readonly("name",
                                [](const mb_mmc_sensor_t& sen) { return mb_to_str(sen.name); })
-        .def_readonly("reading", &mb_mmc_sensor_t::reading);
+        .def_readonly("reading", &mb_mmc_sensor_t::reading)
+        .def("__str__", [](const mb_mmc_sensor_t& s) {
+            return mb_to_str(s.name) + ": " + std::to_string(s.reading);
+        });
 
     m.def("check_magic", mb_check_magic, "Check MMC Mailbox magic string");
     m.def("get_mmc_information", &get_mmc_information, "Get MMC information");
+    m.def("get_mmc_sensors",
+          &get_mmc_sensors,
+          "Get MMC sensors",
+          py::arg("first_sensor") = 0,
+          py::arg("n") = MAX_SENS_MMC);
     m.def("get_fru_description", &get_fru_description, "Get FRU description");
     m.def("get_fru_status", &get_fru_status, "Get FRU status");
 }
