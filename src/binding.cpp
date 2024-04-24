@@ -11,6 +11,7 @@
 
 namespace py = pybind11;
 
+// Wrapper class to wrap C-bitfields/arrays into Python friendly types
 struct FruStatus {
     explicit FruStatus(const mb_fru_status_t& stat)
         : present{static_cast<bool>(stat.present)}
@@ -19,7 +20,7 @@ struct FruStatus {
         , failure{static_cast<bool>(stat.failure)} {
         temperature.resize(stat.num_temp_sensors);
         for (unsigned int i = 0; i < stat.num_temp_sensors; i++) {
-            temperature[i] = float(stat.temperature[i]) / 100.f;
+            temperature[i] = double(stat.temperature[i]) / 100.f;
         }
     }
 
@@ -27,8 +28,10 @@ struct FruStatus {
     bool compatible;
     bool powered;
     bool failure;
-    std::vector<float> temperature;
+    std::vector<double> temperature;
 };
+
+// Getter functions for Python friendly retrieval of data structures
 
 static std::optional<FruStatus> get_fru_status(size_t fru_id) {
     mb_fru_status_t stat;
