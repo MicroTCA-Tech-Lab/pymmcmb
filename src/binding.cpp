@@ -46,10 +46,16 @@ static std::optional<mb_mmc_information_t> get_mmc_information() {
     return info;
 }
 
+static std::optional<mb_fru_description_t> get_fru_description(size_t fru_id) {
+    mb_fru_description_t desc;
+    if (!mb_get_fru_description(&desc, fru_id)) {
+        return std::nullopt;
+    }
+    return desc;
+}
+
 PYBIND11_MODULE(pymmcmb, m) {
     m.doc() = "Python binding for libmmcmb";
-    // m.def("add", &add, "A function that adds two numbers");
-    m.def("check_magic", mb_check_magic, "Check MMC Mailbox magic string");
 
     py::class_<FruStatus>(m, "FruStatus")
         .def_readonly("present", &FruStatus::present)
@@ -57,6 +63,24 @@ PYBIND11_MODULE(pymmcmb, m) {
         .def_readonly("powered", &FruStatus::powered)
         .def_readonly("failure", &FruStatus::failure)
         .def_readonly("temperature", &FruStatus::temperature);
+
+    py::class_<mb_fru_description_t>(m, "FruDescription")
+        .def_property_readonly("uid",
+                               [](const mb_fru_description_t& d) {
+                                   return py::bytearray(reinterpret_cast<const char*>(d.uid),
+                                                        sizeof(d.uid));
+                               })
+        .def_property_readonly(
+            "manufacturer",
+            [](const mb_fru_description_t& d) { return mb_to_str(d.manufacturer); })
+        .def_property_readonly("product",
+                               [](const mb_fru_description_t& d) { return mb_to_str(d.product); })
+        .def_property_readonly("part_nr",
+                               [](const mb_fru_description_t& d) { return mb_to_str(d.part_nr); })
+        .def_property_readonly("serial_nr",
+                               [](const mb_fru_description_t& d) { return mb_to_str(d.serial_nr); })
+        .def_property_readonly("version",
+                               [](const mb_fru_description_t& d) { return mb_to_str(d.version); });
 
     py::class_<mb_version_number_t>(m, "VersionNumber")
         .def_readonly("major", &mb_version_number_t::major)
@@ -80,6 +104,13 @@ PYBIND11_MODULE(pymmcmb, m) {
         .def_readonly("product_id", &mb_mmc_information_t::product_id)
         .def_readonly("mmc_uptime", &mb_mmc_information_t::mmc_uptime);
 
-    m.def("get_fru_status", &get_fru_status, "Get FRU status");
+    py::class_<mb_mmc_sensor_t>(m, "MMCSensor")
+        .def_property_readonly("name",
+                               [](const mb_mmc_sensor_t& sen) { return mb_to_str(sen.name); })
+        .def_readonly("reading", &mb_mmc_sensor_t::reading);
+
+    m.def("check_magic", mb_check_magic, "Check MMC Mailbox magic string");
     m.def("get_mmc_information", &get_mmc_information, "Get MMC information");
+    m.def("get_fru_description", &get_fru_description, "Get FRU description");
+    m.def("get_fru_status", &get_fru_status, "Get FRU status");
 }
